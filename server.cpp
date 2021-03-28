@@ -1,7 +1,7 @@
 #include "server.h"
 
-server::server(uint port, string dir, unsigned short commandOffset) : dir(dir), commandOffset(commandOffset), shutdown(false), connId(0) {
-    this->initSockets(port);
+server::server(uint commandChannelPort, uint dataChannelPort, string dir, unsigned short commandOffset) : dir(dir), commandOffset(commandOffset), shutdown(false), connId(0) {
+    this->initSockets(commandChannelPort, dataChannelPort);
     this->Connection();
 }
 
@@ -18,11 +18,11 @@ int server::Connection() {
 }
 
 
-void server::initSockets(int port) {
+void server::initSockets(int commandChannelPort, int dataChannelPort) {
     int reuseAllowed = 1;
     this->maxClients = 5;
     this->addr.sin_family = AF_INET;
-    this->addr.sin_port = htons(port);
+    this->addr.sin_port = htons(commandChannelPort);
     this->addr.sin_addr.s_addr = INADDR_ANY;
     this->s = socket(PF_INET, SOCK_STREAM, 0);
     if (this->s == -1) {

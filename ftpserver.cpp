@@ -2,12 +2,19 @@
 
 
 int main(int argc, char** argv) {
-    // it is not necessary until add read config.json
-    unsigned short commandOffset = 1; 
-    unsigned int port = 4242;
-    std::string dir = "./"; 
+    ifstream ifs("config.json");
+    Json::Reader reader;
+    Json::Value obj;
+    reader.parse(ifs, obj);
+    // cout << "commandChannelPort: "<< obj["commandChannelPort"] << endl;
+    // cout << "dataChannelPort: " << obj["dataChannelPort"] << endl;
 
-    server* myServer = new server(port, dir, commandOffset);
+    unsigned short commandOffset = 1; 
+    unsigned int commandChannelPort = obj["commandChannelPort"].asInt();
+    unsigned int dataChannelPort = obj["dataChannelPort"].asInt();
+    string dir = "./"; 
+
+    server* myServer = new server(commandChannelPort, dataChannelPort, dir, commandOffset);
 
     delete myServer;
 

@@ -19,10 +19,10 @@ using namespace std;
 
 class server {
 public:
-    server(uint port,std::string dir, unsigned short commandOffset = 1);
+    server(uint commandChannelPort, uint dataChannelPort, string dir, unsigned short commandOffset = 1);
 
 private:
-    void initSockets(int port);
+    void initSockets(int commandChannelPort, int dataChannelPort);
     int Connection();
     unsigned int maxClients;
     int s;
