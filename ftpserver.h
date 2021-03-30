@@ -2,6 +2,7 @@
 #define	_FTPSERVER_H
 
 #include "server.h"
+#include "client.h"
 #include <cstdlib>
 #include <iostream>
 #include <jsoncpp/json/json.h>

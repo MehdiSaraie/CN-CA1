@@ -1,7 +1,8 @@
 #include "server.h"
 
 server::server(uint commandChannelPort, uint dataChannelPort, string dir, unsigned short commandOffset) : dir(dir), commandOffset(commandOffset), shutdown(false), connId(0) {
-    this->initSockets(commandChannelPort, dataChannelPort);
+    this->dataChannelPort = dataChannelPort;
+    this->initSockets(commandChannelPort);
     this->Connection();
 }
 
@@ -18,7 +19,7 @@ int server::Connection() {
 }
 
 
-void server::initSockets(int commandChannelPort, int dataChannelPort) {
+void server::initSockets(int commandChannelPort) {
     int reuseAllowed = 1;
     this->maxClients = 5;
     this->addr.sin_family = AF_INET;

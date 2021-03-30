@@ -1,7 +1,6 @@
-#ifndef _SERVER_H
-#define	_SERVER_H
+#ifndef _CLIENT_H
+#define	_CLIENT_H
 
-// #include "serverconnection.h"
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -17,22 +16,18 @@
 
 using namespace std;
 
-class server {
+class client {
 public:
-    server(uint commandChannelPort, uint dataChannelPort, string dir, unsigned short commandOffset = 1);
+    client(uint commandChannelPort, uint dataChannelPort, string dir);
 
 private:
     void initSockets(int commandChannelPort);
-    int Connection();
     int dataChannelPort;
-    unsigned int maxClients;
     int s;
-    fd_set socks;
+    // fd_set socks;
     string dir;
-    unsigned int connId;
-    bool shutdown;
     struct sockaddr_in addr;
-    struct sockaddr_in cli;
+    struct sockaddr_in srv;
     socklen_t cli_size;
     unsigned short commandOffset;
 };
