@@ -1,6 +1,5 @@
 #include "ftpserver.h"
 
-
 int main(int argc, char** argv) {
     ifstream ifs("config.json");
     Json::Reader reader;
@@ -13,6 +12,8 @@ int main(int argc, char** argv) {
     string dir = "./"; 
 
     client* myClient = new client(commandChannelPort, dataChannelPort, dir);
+
+	myClient->Communicate();
 
     // delete myClient;
 

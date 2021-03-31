@@ -3,9 +3,9 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <string>
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>
@@ -13,18 +13,18 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <string.h>
 
 using namespace std;
 
 class client {
 public:
     client(uint commandChannelPort, uint dataChannelPort, string dir);
-
+	void Communicate();
 private:
-    void initSockets(int commandChannelPort);
+    void InitSockets(int commandChannelPort);
     int dataChannelPort;
     int s;
-    // fd_set socks;
     string dir;
     struct sockaddr_in serv_addr;
     unsigned short commandOffset;

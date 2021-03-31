@@ -3,8 +3,6 @@
 
 #include "server.h"
 #include "client.h"
-#include <cstdlib>
-#include <iostream>
 #include <jsoncpp/json/json.h>
 #include <fstream>
 
