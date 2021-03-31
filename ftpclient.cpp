@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 
     client* myClient = new client(commandChannelPort, dataChannelPort, dir);
 
-    // delete myServer;
+    // delete myClient;
 
     return (EXIT_SUCCESS);
 }

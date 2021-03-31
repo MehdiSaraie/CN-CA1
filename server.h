@@ -20,13 +20,13 @@ using namespace std;
 class server {
 public:
     server(uint commandChannelPort, uint dataChannelPort, string dir, unsigned short commandOffset = 1);
-
 private:
     void initSockets(int commandChannelPort);
-    int Connection();
+    int Accept();
+    int commandChannelPort;
     int dataChannelPort;
     unsigned int maxClients;
-    int s;
+    int listening_socket;
     fd_set socks;
     string dir;
     unsigned int connId;

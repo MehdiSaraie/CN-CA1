@@ -26,9 +26,7 @@ private:
     int s;
     // fd_set socks;
     string dir;
-    struct sockaddr_in addr;
-    struct sockaddr_in srv;
-    socklen_t cli_size;
+    struct sockaddr_in serv_addr;
     unsigned short commandOffset;
 };
 
