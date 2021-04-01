@@ -14,20 +14,22 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <jsoncpp/json/json.h>
+#include <fstream>
 
 using namespace std;
 
 class client {
 public:
-    client(uint commandChannelPort, uint dataChannelPort, string dir);
+	client(uint commandChannelPort, uint dataChannelPort, string dir);
 	void Communicate();
 private:
-    void InitSockets(int commandChannelPort);
-    int dataChannelPort;
-    int s;
-    string dir;
-    struct sockaddr_in serv_addr;
-    unsigned short commandOffset;
+	void InitSockets(int commandChannelPort);
+	int dataChannelPort;
+	int s;
+	string dir;
+	struct sockaddr_in serv_addr;
+	unsigned short commandOffset;
 };
 
 #endif

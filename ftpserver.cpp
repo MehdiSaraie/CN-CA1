@@ -1,17 +1,17 @@
-#include "ftpserver.h"
+#include "server.h"
 
 int main(int argc, char** argv) {
     ifstream ifs("config.json");
     Json::Reader reader;
-    Json::Value obj;
-    reader.parse(ifs, obj);
+    Json::Value config;
+    reader.parse(ifs, config);
 
     unsigned short commandOffset = 1; 
-    unsigned int commandChannelPort = obj["commandChannelPort"].asInt();
-    unsigned int dataChannelPort = obj["dataChannelPort"].asInt();
+    unsigned int commandChannelPort = config["commandChannelPort"].asInt();
+    unsigned int dataChannelPort = config["dataChannelPort"].asInt();
     string dir = "./"; 
 
-    server* myServer = new server(commandChannelPort, dataChannelPort, dir, commandOffset);
+    server* myServer = new server(commandChannelPort, dataChannelPort, dir, config);
 
 	myServer->Run();
 	

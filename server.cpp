@@ -1,8 +1,7 @@
 #include "server.h"
 #define BUFSIZE 1024
-#define MAXCLIENTS 5
 
-server::server(uint commandChannelPort, uint dataChannelPort, string dir, unsigned short commandOffset) : commandChannelPort(commandChannelPort), dataChannelPort(dataChannelPort), dir(dir), commandOffset(commandOffset), shutdown(false), connId(0) {
+server::server(uint commandChannelPort, uint dataChannelPort, string dir, Json::Value config) : commandChannelPort(commandChannelPort), dataChannelPort(dataChannelPort), dir(dir), config(config) {
     this->InitSockets(commandChannelPort);
 }
 
@@ -27,22 +26,22 @@ void server::InitSockets(int commandChannelPort) {
         close (this->listening_socket);
         return;
     }
-    else if (listen(this->listening_socket, MAXCLIENTS) == -1) {
+    else if (listen(this->listening_socket, 3) == -1) {
         cerr << ("listen () failed") << endl;
         close (this->listening_socket);
         return;
+    }
+
+	for (int i = 0; i < MAXCLIENTS; i++)
+    {
+        this->clients[i].socket = 0;
     }
 }
 
 
 void server::Run() {
 
-	int new_socket, client_socket[MAXCLIENTS], activity, i, valread, sd, max_sd;
-	
-	for (i = 0; i < MAXCLIENTS; i++)
-    {
-        client_socket[i] = 0;
-    }
+	int new_socket, activity, i, valread, sd, max_sd;
 
 	while(true) {
 
@@ -54,7 +53,7 @@ void server::Run() {
         //add child sockets to set
         for (i = 0; i < MAXCLIENTS; i++) {
             //socket descriptor 
-            sd = client_socket[i];
+            sd = this->clients[i].socket;
                  
             //if valid socket descriptor then add to read list 
             if (sd > 0)
@@ -81,22 +80,25 @@ void server::Run() {
             }  
 
             //inform user of socket number - used in send and receive commands
-            cout << "New connection with socket fd : " << new_socket << ", ip : " << inet_ntoa(this->cli_addr.sin_addr) << ", port :" << ntohs(this->cli_addr.sin_port) << endl;
+            cout << "New connection with socket fd: " << new_socket << ", ip: " << inet_ntoa(this->cli_addr.sin_addr) << ", port: " << ntohs(this->cli_addr.sin_port) << endl;
 
             //add new socket to array of sockets
             for (i = 0; i < MAXCLIENTS; i++) {
                 //if position is empty
-                if (client_socket[i] == 0) {
-                    client_socket[i] = new_socket;
+                if (this->clients[i].socket == 0) {
+                    this->clients[i].socket = new_socket;
+					this->clients[i].login = 0;
+					this->clients[i].user = "";
                     cout << "Adding to list of sockets as " << i << endl;
                     break;
                 }
             }
+			
         }
              
         //else its some IO operation on some other socket
         for (i = 0; i < MAXCLIENTS; i++) {
-            sd = client_socket[i];  
+            sd = this->clients[i].socket;  
 
             if (FD_ISSET(sd, &this->readfds)) {
 				char buffer[BUFSIZE+1];
@@ -106,24 +108,79 @@ void server::Run() {
                 if (valread==0) {
                     //Somebody disconnected , get his details and print
                     getpeername(sd, (struct sockaddr*)&this->cli_addr, (socklen_t*)&this->cli_size);
-                    cout << "Host disconnected with ip : " << inet_ntoa(this->cli_addr.sin_addr) << ", port : " <<  ntohs(this->cli_addr.sin_port) << endl;
+                    cout << "Host disconnected with ip: " << inet_ntoa(this->cli_addr.sin_addr) << ", port: " <<  ntohs(this->cli_addr.sin_port) << endl;
 
                     //Close the socket and mark as 0 in list for reuse
                     close(sd);
-                    client_socket[i] = 0;
+                    this->clients[i].socket = 0;
                 }
                      
                 else {
-					string command, arg;
+					string command, arg, response;
+					vector<string> args;
 					buffer[valread] = '\0';
                     istringstream stream(buffer);
-					cout << buffer << endl;
 					stream >> command;
 					while(stream >> arg) {
-						cout << arg << endl;
+						args.push_back(arg);
 					}
 
-					//prepare response here
+				    //prepare response here
+
+					if (command == "user") {
+
+						if (this->clients[i].login == 2)
+							response = "please quit first\n";
+
+						else if (args.size() != 1)
+							response = "501: Syntax error in parameters or arguments.\n";
+
+						else {
+							string username=args[0];
+							Json::Value users = this->config["users"];
+							for (int j = 0; j < users.size(); j++) {
+								if (users[j]["user"] == username) {
+									response = "331: User name okay, need password\n";
+									this->clients[i].login = 1;
+									this->clients[i].password = users[j]["password"].asString();
+									this->clients[i].admin = users[j]["admin"] == "true";
+									this->clients[i].size = stoi(users[j]["size"].asString());
+									break;
+								}
+							}
+							this->clients[i].user = username;
+						}
+
+					}
+
+					if (command == "pass") {
+
+						if (this->clients[i].login == 2)
+							response = "please quit first\n";
+
+						else if (this->clients[i].login == 0) {
+							if (this->clients[i].user == "")
+								response = "503: Bad sequence of commands.\n";
+							else
+								response = "430: Invalid username or password\n";
+						}
+
+						else if (args.size() != 1)
+							response = "501: Syntax error in parameters or arguments.\n";
+
+						else {
+							string password = args[0];
+							if (password == this->clients[i].password) {
+								response = "230: User logged in, proceed. Logged out if appropriate.\n";
+								this->clients[i].login = 2;	
+							}
+							else
+								response = "430: Invalid username or password\n";
+						}
+
+					}
+
+					cout << response;
                     //send response
                 }
             }
@@ -136,7 +193,9 @@ void server::Run() {
 		//while (valread > 0) { /* zero indicates end of transmission */
 		//	if ((valread = recv(client_socket, buffer, BUFSIZE, 0)) < 0)
 		//		DieWithError("recv() failed");
-
-		
+		/*for(i=0; i<MAXCLIENTS; i++) {
+			cout << FD_ISSET(this->clients[i].socket, &this->readfds) << " ";
+		}
+		cout << endl;*/
 	}
 }
