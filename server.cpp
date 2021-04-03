@@ -69,13 +69,13 @@ void server::Run() {
         activity = select(max_sd + 1, &this->readfds, NULL, NULL, NULL);
        
         if ((activity < 0) && (errno!=EINTR)) {
-            cout << "select error\n";
+            cout << "select error";
         }
 
         //If something happened on the master socket then its an incoming connection
         if (FD_ISSET(this->listening_socket, &this->readfds)) {
             if ((new_socket = accept(this->listening_socket, (struct sockaddr *)&this->cli_addr, (socklen_t*)&this->cli_size))<0) {
-                cerr << ("Error while accepting client\n");
+                cerr << ("Error while accepting client");
                 return exit(EXIT_FAILURE);
             }  
 
@@ -131,17 +131,17 @@ void server::Run() {
 					if (command == "user") {
 
 						if (this->clients[i].login == 2)
-							response = "please quit first\n";
+							response = "please quit first";
 
 						else if (args.size() != 1)
-							response = "501: Syntax error in parameters or arguments.\n";
+							response = "501: Syntax error in parameters or arguments.";
 
 						else {
 							string username=args[0];
 							Json::Value users = this->config["users"];
 							for (int j = 0; j < users.size(); j++) {
 								if (users[j]["user"] == username) {
-									response = "331: User name okay, need password\n";
+									response = "331: User name okay, need password";
 									this->clients[i].login = 1;
 									this->clients[i].password = users[j]["password"].asString();
 									this->clients[i].admin = users[j]["admin"] == "true";
@@ -157,40 +157,42 @@ void server::Run() {
 					if (command == "pass") {
 
 						if (this->clients[i].login == 2)
-							response = "please quit first\n";
+							response = "please quit first";
 
 						else if (this->clients[i].login == 0) {
 							if (this->clients[i].user == "")
-								response = "503: Bad sequence of commands.\n";
+								response = "503: Bad sequence of commands.";
 							else
-								response = "430: Invalid username or password\n";
+								response = "430: Invalid username or password";
 						}
 
 						else if (args.size() != 1)
-							response = "501: Syntax error in parameters or arguments.\n";
+							response = "501: Syntax error in parameters or arguments.";
 
 						else {
 							string password = args[0];
 							if (password == this->clients[i].password) {
-								response = "230: User logged in, proceed. Logged out if appropriate.\n";
+								response = "230: User logged in, proceed. Logged out if appropriate.";
 								this->clients[i].login = 2;	
 							}
 							else
-								response = "430: Invalid username or password\n";
+								response = "430: Invalid username or password";
 						}
 
 					}
 
                     if (this->clients[i].login == 2){
                         if (command == "pwd"){
-                            response = ("257: " + this->clients[i].dir + "\n").c_str() ;
+                            response = ("257: " + this->clients[i].dir + "").c_str() ;
                         }
 
                         if (command == "mkd"){
                             string dir_path = args[0];
                             if(mkdir((this->clients[i].dir + dir_path).c_str(),0777) == 0){
+                                if(this->clients[i].dir.back() != '/')
+                                    this->clients[i].dir.back() = '/';
                                 this->clients[i].dir += dir_path;
-                                response = ("257: " + this->clients[i].dir + " created.\n").c_str();
+                                response = ("257: " + this->clients[i].dir + " created.").c_str();
                             }
                         }
 
@@ -199,12 +201,12 @@ void server::Run() {
                             if (dele_mode == "-d"){
                                 string dir_path= args[1];
                                 if(rmdir(dir_path.c_str()) == 0)
-                                    response = ("250: " + dir_path + " deleted.\n").c_str();
+                                    response = ("250: " + dir_path + " deleted.").c_str();
                             }
                             else if (dele_mode == "-f"){
                                 string filename= args[1];
                                 if(remove( "myfile.txt" ) == 0 )
-                                    response = ("250: " + filename + " deleted.\n").c_str();
+                                    response = ("250: " + filename + " deleted.").c_str();
                             }
                             
                         }
@@ -219,15 +221,19 @@ void server::Run() {
                                         this->clients[i].dir = this->clients[i].dir.substr(0, this->clients[i].dir.size()-1);
                                 }
                                 else{
-                                    this->clients[i].dir = dir_path;
+                                    this->clients[i].dir += dir_path;
                                 }
-                                response = "250: Sucessful change.\n";
+                                response = "250: Sucessful change.";
                             }
                         }
                     
                     }
-					cout << response;
-                    //send response
+
+                    //send responce to client
+                    char* message = &response[0];
+                    if(send(sd, message, strlen(message), 0) != strlen(message))
+                        cerr << ("send() sent a different number of bytes than expected");
+
                 }
             }
         }

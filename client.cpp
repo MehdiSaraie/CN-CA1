@@ -1,4 +1,5 @@
 #include "client.h"
+#define BUFSIZE 1024
 
 client::client(uint commandChannelPort, uint dataChannelPort, string dir) : dataChannelPort(dataChannelPort) {
     this->InitSockets(commandChannelPort);
@@ -33,7 +34,12 @@ void client::Communicate() {
 		message = &input[0];
 		if (send(this->s, message, strlen(message), 0) != strlen(message))
 			cerr << ("send() sent a different number of bytes than expected");
-		//receive response
+
+        char buffer[BUFSIZE+1];
+        memset(&buffer, 0, BUFSIZE);
+        if (recv(this->s, buffer, BUFSIZE, 0) > 0) {
+            puts(buffer);
+        }
 	}
 
 }
