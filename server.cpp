@@ -89,6 +89,7 @@ void server::Run() {
                     this->clients[i].socket = new_socket;
 					this->clients[i].login = 0;
 					this->clients[i].user = "";
+                    this->clients[i].dir = "./";
                     cout << "Adding to list of sockets as " << i << endl;
                     break;
                 }
@@ -105,6 +106,7 @@ void server::Run() {
                 //Check if it was for closing , and also read the
                 //incoming message
 				valread = recv(sd, buffer, BUFSIZE, 0);
+                cout << valread << endl;
                 if (valread==0) {
                     //Somebody disconnected , get his details and print
                     getpeername(sd, (struct sockaddr*)&this->cli_addr, (socklen_t*)&this->cli_size);
@@ -180,6 +182,20 @@ void server::Run() {
 
 					}
 
+                    if (this->clients[i].login == 2){
+                        if (command == "pwd"){
+                            response = ("257: " + this->clients[i].dir + "\n").c_str() ;
+                        }
+
+                        if (command == "mkd"){
+                            string dir_path = args[0];
+                            if(mkdir((this->clients[i].dir + dir_path).c_str(),0777) == 0){
+                                this->clients[i].dir += dir_path;
+                                response = ("257: " + this->clients[i].dir + " created.\n").c_str();
+                            }
+                        }
+                    
+                    }
 					cout << response;
                     //send response
                 }

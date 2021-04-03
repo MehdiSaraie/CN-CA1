@@ -17,6 +17,8 @@
 #include <string.h>
 #include <jsoncpp/json/json.h>
 #include <fstream>
+#include <bits/stdc++.h>
+#include <sys/stat.h>
 
 #define MAXCLIENTS 10
 
