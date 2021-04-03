@@ -155,7 +155,7 @@ void server::Run() {
 
 					}
 
-					if (command == "pass") {
+					else if (command == "pass") {
 
 						if (this->clients[i].login == 2)
 							response = "please quit first";
@@ -174,7 +174,8 @@ void server::Run() {
 							string password = args[0];
 							if (password == this->clients[i].password) {
 								response = "230: User logged in, proceed. Logged out if appropriate.";
-								this->clients[i].login = 2;	
+								this->clients[i].login = 2;
+                                this->WriteInFile(this->clients[i].user, "Logged In");
 							}
 							else
 								response = "430: Invalid username or password";
@@ -197,6 +198,7 @@ void server::Run() {
                                         this->clients[i].dir += '/';
                                     this->clients[i].dir += dir_path;
                                     response = ("257: " + this->clients[i].dir + " created.").c_str();
+                                    this->WriteInFile(this->clients[i].user, "Make directory", dir_path);
                                 }
                             }
                         }
@@ -210,6 +212,7 @@ void server::Run() {
                                     string dir_path= args[1];
                                     if(rmdir(dir_path.c_str()) == 0)
                                         response = ("250: " + dir_path + " deleted.").c_str();
+                                        this->WriteInFile(this->clients[i].user, "Delete directory", dir_path);
                                 }
 
                                 //Have a problem
@@ -217,6 +220,7 @@ void server::Run() {
                                     string filename= args[1];
                                     if(remove(filename.c_str()) == 0 )
                                         response = ("250: " + filename + " deleted.").c_str();
+                                        this->WriteInFile(this->clients[i].user, "Delete file", filename);
                                 }
                             }
                         }
@@ -246,6 +250,7 @@ void server::Run() {
                                 string to = args[1];
                                 if (rename(from.c_str(), to.c_str()) == 0)
 		                            response = "250: Sucessful change.";
+                                    this->WriteInFile(this->clients[i].user, "Rename file", from, to);
                             }
                         }
 
@@ -293,4 +298,13 @@ void server::Run() {
 		}
 		cout << endl;*/
 	}
+}
+
+
+void server::WriteInFile(string user, string action, string input1, string input2){
+    this->outfile.open("log.txt", ios::app);
+    time_t now = time(0);
+    char* date_time = ctime(&now);
+    this->outfile << user << " / " << action << " / " << input1 << " / " << input2 << " / " << date_time;
+    this->outfile.close();
 }

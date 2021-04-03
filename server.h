@@ -19,6 +19,7 @@
 #include <fstream>
 #include <bits/stdc++.h>
 #include <sys/stat.h>
+#include <ctime>
 #include <dirent.h>
 
 
@@ -42,6 +43,7 @@ public:
 	void Run();
 private:
 	void InitSockets(int commandChannelPort);
+	void WriteInFile(string user, string action, string input1 = "", string input2 = "");
 	int commandChannelPort;
 	int dataChannelPort;
 	Json::Value config;
@@ -52,6 +54,10 @@ private:
 	struct sockaddr_in addr;
 	struct sockaddr_in cli_addr;
 	socklen_t cli_size;
+	ofstream outfile;
+	time_t now;
+    char* date_time;
+
 };
 
 #endif
