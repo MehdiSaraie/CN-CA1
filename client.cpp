@@ -15,10 +15,6 @@ void client::InitSockets(int commandChannelPort) {
         cerr << "socket() failed" << endl;
         return;
     }
-    // ????????????????????????????????
-    // if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0){ 
-    //     perror("\nInvalflag address/ Address not supported \n"); 
-    // } 
    
     if (connect(this->s, (struct sockaddr *)&this->serv_addr, sizeof(this->serv_addr)) < 0) { 
         perror("\nConnection Failed \n");
@@ -39,7 +35,30 @@ void client::Communicate() {
         memset(&buffer, 0, BUFSIZE);
         if (recv(this->s, buffer, BUFSIZE, 0) > 0) {
             puts(buffer);
+            if(input == "ls"){
+                this->createDataChannel();
+            }
         }
 	}
 
 }
+
+void client::createDataChannel(){
+    int sock = 0, valread;
+    struct sockaddr_in serv_addrData;
+    char buffer[BUFSIZE] = {0};
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+        printf("\n Socket creation error \n");
+    }
+   
+    serv_addrData.sin_family = AF_INET;
+    serv_addrData.sin_port = htons(this->dataChannelPort);
+
+    if (connect(sock, (struct sockaddr *)&serv_addrData, sizeof(serv_addrData)) < 0){
+        printf("\nConnection Failed \n");
+    }
+    valread = read(sock , buffer, BUFSIZE);
+    cout << buffer << endl;
+
+}
+

@@ -118,6 +118,7 @@ void server::Run() {
                      
                 else {
 					string command, arg, response;
+                    string data = "";
 					vector<string> args;
 					buffer[valread] = '\0';
                     istringstream stream(buffer);
@@ -203,9 +204,11 @@ void server::Run() {
                                 if(rmdir(dir_path.c_str()) == 0)
                                     response = ("250: " + dir_path + " deleted.").c_str();
                             }
+
+                            //Have a problem
                             else if (dele_mode == "-f"){
                                 string filename= args[1];
-                                if(remove( "myfile.txt" ) == 0 )
+                                if(remove(filename.c_str()) == 0 )
                                     response = ("250: " + filename + " deleted.").c_str();
                             }
                             
@@ -226,14 +229,45 @@ void server::Run() {
                                 response = "250: Sucessful change.";
                             }
                         }
+                        
+                        //Have a problem
+                        if (command == "rename"){
+                            if (args.size() != 2)
+                                response = "501: Syntax error in parameters or arguments.";
+                            else{
+                                string from = args[0];
+                                string to = args[1];
+                                if (rename(from.c_str(), to.c_str()) == 0)
+		                            response = "250: Sucessful change.";
+                            }
+                        }
+
+                        if (command == "ls"){
+                            struct dirent *entry;
+                            DIR *dir = opendir(this->clients[i].dir.c_str());
+
+                            if (dir == NULL) {
+                                continue;
+                            }
+                            while ((entry = readdir(dir)) != NULL) {
+                                data += "  ";
+                                data += entry->d_name;
+                            }
+                            closedir(dir);
+                            
+                            response = "226: List transfer done.";
+                        }
+                        
                     
                     }
 
                     //send responce to client
+                    
                     char* message = &response[0];
                     if(send(sd, message, strlen(message), 0) != strlen(message))
                         cerr << ("send() sent a different number of bytes than expected");
-
+                    if(command == "ls")
+                        this->createDataChannel(data);
                 }
             }
         }
@@ -250,4 +284,43 @@ void server::Run() {
 		}
 		cout << endl;*/
 	}
+}
+
+
+void server::createDataChannel(string data){
+    cout << "here\n";
+    int server_fd, new_socket, valread;
+    struct sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+    char buffer[BUFSIZE] = {0};
+       
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+       
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))){
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(this->dataChannelPort);
+       
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0){
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+    if (listen(server_fd, 3) < 0){
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+    if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0){
+        perror("accept");
+        exit(EXIT_FAILURE);
+    }
+    cout << "Asdfd\n";
+    char* message = &data[0];
+    send(new_socket , message , strlen(message) , 0 );
 }

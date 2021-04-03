@@ -19,6 +19,8 @@
 #include <fstream>
 #include <bits/stdc++.h>
 #include <sys/stat.h>
+#include <dirent.h>
+
 
 #define MAXCLIENTS 10
 
@@ -40,6 +42,7 @@ public:
 	void Run();
 private:
 	void InitSockets(int commandChannelPort);
+	void createDataChannel(string data);
 	int commandChannelPort;
 	int dataChannelPort;
 	Json::Value config;
