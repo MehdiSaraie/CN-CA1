@@ -193,6 +193,37 @@ void server::Run() {
                                 response = ("257: " + this->clients[i].dir + " created.\n").c_str();
                             }
                         }
+
+                        if (command == "dele"){
+                            string dele_mode = args[0];
+                            if (dele_mode == "-d"){
+                                string dir_path= args[1];
+                                if(rmdir(dir_path.c_str()) == 0)
+                                    response = ("250: " + dir_path + " deleted.\n").c_str();
+                            }
+                            else if (dele_mode == "-f"){
+                                string filename= args[1];
+                                if(remove( "myfile.txt" ) == 0 )
+                                    response = ("250: " + filename + " deleted.\n").c_str();
+                            }
+                            
+                        }
+
+                        if (command == "cwd"){
+                            if (args.size() != 1)
+                                this->clients[i].dir = "./";
+                            else{
+                                string dir_path = args[0];
+                                if(dir_path == ".."){
+                                    while(this->clients[i].dir.back() != '/')
+                                        this->clients[i].dir = this->clients[i].dir.substr(0, this->clients[i].dir.size()-1);
+                                }
+                                else{
+                                    this->clients[i].dir = dir_path;
+                                }
+                                response = "250: Sucessful change.\n";
+                            }
+                        }
                     
                     }
 					cout << response;
