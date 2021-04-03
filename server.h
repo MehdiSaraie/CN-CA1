@@ -42,7 +42,6 @@ public:
 	void Run();
 private:
 	void InitSockets(int commandChannelPort);
-	void createDataChannel(string data);
 	int commandChannelPort;
 	int dataChannelPort;
 	Json::Value config;

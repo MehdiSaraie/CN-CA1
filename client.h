@@ -25,7 +25,6 @@ public:
 	void Communicate();
 private:
 	void InitSockets(int commandChannelPort);
-	void createDataChannel();
 	int dataChannelPort;
 	int s;
 	string dir;
