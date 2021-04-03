@@ -106,7 +106,6 @@ void server::Run() {
                 //Check if it was for closing , and also read the
                 //incoming message
 				valread = recv(sd, buffer, BUFSIZE, 0);
-                cout << valread << endl;
                 if (valread==0) {
                     //Somebody disconnected , get his details and print
                     getpeername(sd, (struct sockaddr*)&this->cli_addr, (socklen_t*)&this->cli_size);
