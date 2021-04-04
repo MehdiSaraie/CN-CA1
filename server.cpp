@@ -118,7 +118,6 @@ void server::Run() {
                      
                 else {
 					string command, arg, response;
-                    string data = "";
 					vector<string> args;
 					buffer[valread] = '\0';
                     istringstream stream(buffer);
@@ -200,6 +199,7 @@ void server::Run() {
                                     response = ("257: " + this->clients[i].dir + " created.").c_str();
                                     this->WriteInFile(this->clients[i].user, "Make directory", dir_path);
                                 }
+                                else response = "500: Error";
                             }
                         }
 
@@ -226,19 +226,41 @@ void server::Run() {
                         }
 
                         else if (command == "cwd"){
-                            if (args.size() != 1)
+                            if (args.size() != 1){
                                 this->clients[i].dir = "./";
-                            else{
+                                response = "250: Sucessful change.";
+                            }
+                            else if (args.size() == 1){
+                                int flag = 0;
                                 string dir_path = args[0];
                                 if(dir_path == ".."){
                                     while(this->clients[i].dir.back() != '/')
                                         this->clients[i].dir = this->clients[i].dir.substr(0, this->clients[i].dir.size()-1);
+                                    flag = 1;
                                 }
                                 else{
-                                    this->clients[i].dir += dir_path;
+                                    string lastDir = "";
+                                    string temp = this->clients[i].dir + dir_path;
+                                    while(temp.back()!='/'){
+                                        lastDir = temp.back() + lastDir;
+                                        temp = temp.substr(0, temp.size()-1);
+                                    }
+                                    vector<string> lists = this->validDir(temp);
+                                    for(int m=0; m<lists.size(); m++){
+                                        if(lists[m]==lastDir){
+                                            this->clients[i].dir += dir_path;
+                                            flag = 1;
+                                            break;
+                                        }
+                                    }
+                                    
                                 }
-                                response = "250: Sucessful change.";
+                                if (flag)
+                                    response = "250: Sucessful change.";
+                                else
+                                    response = "500: Error (No such file or directory.)";
                             }
+                            else response = "501: Syntax error in parameters or arguments.";
                         }
                         
                         //Have a problem
@@ -256,17 +278,7 @@ void server::Run() {
 
                         //??????????????
                         else if (command == "ls"){
-                            struct dirent *entry;
-                            DIR *dir = opendir(this->clients[i].dir.c_str());
-
-                            if (dir == NULL) {
-                                continue;
-                            }
-                            while ((entry = readdir(dir)) != NULL) {
-                                data += "  ";
-                                data += entry->d_name;
-                            }
-                            closedir(dir);
+                            vector<string> lists = this->validDir(this->clients[i].dir.c_str());
                             
                             response = "226: List transfer done.";
                         }
@@ -305,6 +317,22 @@ void server::WriteInFile(string user, string action, string input1, string input
     this->outfile.open("log.txt", ios::app);
     time_t now = time(0);
     char* date_time = ctime(&now);
-    this->outfile << user << " / " << action << " / " << input1 << " / " << input2 << " / " << date_time;
+    this->outfile << user << "  " << action << "  " << input1 << "  " << input2 << "  " << date_time;
     this->outfile.close();
+}
+
+vector<string> server::validDir(string currDir){
+    struct dirent *entry;
+    vector <string> lists;
+    DIR *dir = opendir(currDir.c_str());
+
+    if (dir == NULL) {
+        return lists;
+    }
+    while ((entry = readdir(dir)) != NULL) {
+        lists.push_back(entry->d_name);
+    }
+    closedir(dir);
+
+    return lists;
 }

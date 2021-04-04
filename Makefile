@@ -8,4 +8,4 @@ client: ftpclient.cpp client.h client.cpp
 
 .phony: clean
 clean:
-	rm server client
+	rm server client log.txt

@@ -44,6 +44,7 @@ public:
 private:
 	void InitSockets(int commandChannelPort);
 	void WriteInFile(string user, string action, string input1 = "", string input2 = "");
+	vector<string> validDir(string dir);
 	int commandChannelPort;
 	int dataChannelPort;
 	Json::Value config;
