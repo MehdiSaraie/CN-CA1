@@ -193,9 +193,9 @@ void server::Run() {
                             else{
                                 string dir_path = args[0];
                                 if(mkdir((this->clients[i].dir + dir_path).c_str(),0777) == 0){
+                                    this->clients[i].dir += dir_path;
                                     if(this->clients[i].dir.back() != '/')
                                         this->clients[i].dir += '/';
-                                    this->clients[i].dir += dir_path;
                                     response = ("257: " + this->clients[i].dir + " created.").c_str();
                                     this->WriteInFile(this->clients[i].user, "Make directory", dir_path);
                                 }
@@ -203,6 +203,7 @@ void server::Run() {
                             }
                         }
 
+                        //???????????????????????????????
                         else if (command == "dele"){
                             if (args.size() != 2)
                                 response = "501: Syntax error in parameters or arguments.";
@@ -210,17 +211,21 @@ void server::Run() {
                                 string dele_mode = args[0];
                                 if (dele_mode == "-d"){
                                     string dir_path= args[1];
-                                    if(rmdir(dir_path.c_str()) == 0)
+                                    if(rmdir((this->clients[i].dir + dir_path).c_str()) == 0){
                                         response = ("250: " + dir_path + " deleted.").c_str();
                                         this->WriteInFile(this->clients[i].user, "Delete directory", dir_path);
+                                    }
+                                    else response = "500: Error";
                                 }
 
                                 //Have a problem
                                 else if (dele_mode == "-f"){
                                     string filename= args[1];
-                                    if(remove(filename.c_str()) == 0 )
+                                    if(remove(filename.c_str()) == 0 ){
                                         response = ("250: " + filename + " deleted.").c_str();
                                         this->WriteInFile(this->clients[i].user, "Delete file", filename);
+                                    }
+                                    else response = "500: Error";
                                 }
                             }
                         }
@@ -234,6 +239,7 @@ void server::Run() {
                                 int flag = 0;
                                 string dir_path = args[0];
                                 if(dir_path == ".."){
+                                    this->clients[i].dir = this->clients[i].dir.substr(0, this->clients[i].dir.size()-1);
                                     while(this->clients[i].dir.back() != '/')
                                         this->clients[i].dir = this->clients[i].dir.substr(0, this->clients[i].dir.size()-1);
                                     flag = 1;
@@ -241,6 +247,7 @@ void server::Run() {
                                 else{
                                     string lastDir = "";
                                     string temp = this->clients[i].dir + dir_path;
+                                    temp = temp.substr(0, temp.size()-1);
                                     while(temp.back()!='/'){
                                         lastDir = temp.back() + lastDir;
                                         temp = temp.substr(0, temp.size()-1);
@@ -249,6 +256,8 @@ void server::Run() {
                                     for(int m=0; m<lists.size(); m++){
                                         if(lists[m]==lastDir){
                                             this->clients[i].dir += dir_path;
+                                            if(this->clients[i].dir.back() != '/')
+                                                this->clients[i].dir += '/';
                                             flag = 1;
                                             break;
                                         }
