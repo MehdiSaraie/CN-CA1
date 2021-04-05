@@ -203,7 +203,6 @@ void server::Run() {
                             }
                         }
 
-                        //???????????????????????????????
                         else if (command == "dele"){
                             if (args.size() != 2)
                                 response = "501: Syntax error in parameters or arguments.";
@@ -211,21 +210,26 @@ void server::Run() {
                                 string dele_mode = args[0];
                                 if (dele_mode == "-d"){
                                     string dir_path= args[1];
-                                    if(rmdir((this->clients[i].dir + dir_path).c_str()) == 0){
-                                        response = ("250: " + dir_path + " deleted.").c_str();
-                                        this->WriteInFile(this->clients[i].user, "Delete directory", dir_path);
+                                    if(this->isPossible(dir_path)){
+                                        if(rmdir((this->clients[i].dir + dir_path).c_str()) == 0){
+                                            response = ("250: " + dir_path + " deleted.").c_str();
+                                            this->WriteInFile(this->clients[i].user, "Delete directory", dir_path);
+                                        }
+                                        else response = "500: Error (No such directory / This directory is not empty)";
                                     }
-                                    else response = "500: Error";
+                                    else response = "500: Error (Some one is in this directory)";
                                 }
 
-                                //Have a problem
                                 else if (dele_mode == "-f"){
-                                    string filename= args[1];
-                                    if(remove(filename.c_str()) == 0 ){
-                                        response = ("250: " + filename + " deleted.").c_str();
-                                        this->WriteInFile(this->clients[i].user, "Delete file", filename);
+                                    string filename = args[1];
+                                    if ( this->clients[i].admin == 1 || this->fileAvailibility(filename)){
+                                        if(remove((this->clients[i].dir + filename).c_str()) == 0 ){
+                                            response = ("250: " + filename + " deleted.").c_str();
+                                            this->WriteInFile(this->clients[i].user, "Delete file", filename);
+                                        }
+                                        else response = "500: Error";
                                     }
-                                    else response = "500: Error";
+                                    else response = "550: File unavailable.";
                                 }
                             }
                         }
@@ -272,16 +276,20 @@ void server::Run() {
                             else response = "501: Syntax error in parameters or arguments.";
                         }
                         
-                        //Have a problem
                         else if (command == "rename"){
                             if (args.size() != 2)
                                 response = "501: Syntax error in parameters or arguments.";
                             else{
                                 string from = args[0];
-                                string to = args[1];
-                                if (rename(from.c_str(), to.c_str()) == 0)
-		                            response = "250: Sucessful change.";
-                                    this->WriteInFile(this->clients[i].user, "Rename file", from, to);
+                                if(this->clients[i].admin == 1 || this->fileAvailibility(from)){
+                                    string to = args[1];
+                                    if (rename((this->clients[i].dir+from).c_str(), (this->clients[i].dir+to).c_str()) == 0){
+                                        response = "250: Sucessful change.";
+                                        this->WriteInFile(this->clients[i].user, "Rename file", from, to);
+                                    }
+                                    else response = "500: Error";
+                                }
+                                else response = "550: File unavailable.";
                             }
                         }
 
@@ -298,8 +306,9 @@ void server::Run() {
                     }
                     else
                         response = "332: Need acount for login.";
+
+
                     //send responce to client
-                    
                     char* message = &response[0];
                     if(send(sd, message, strlen(message), 0) != strlen(message))
                         cerr << ("send() sent a different number of bytes than expected");
@@ -326,7 +335,7 @@ void server::WriteInFile(string user, string action, string input1, string input
     this->outfile.open("log.txt", ios::app);
     time_t now = time(0);
     char* date_time = ctime(&now);
-    this->outfile << user << "  " << action << "  " << input1 << "  " << input2 << "  " << date_time;
+    this->outfile << user << "  " << action << "  " << input1 << "  " << input2 << "  " << "Date and Time: " << date_time;
     this->outfile.close();
 }
 
@@ -344,4 +353,23 @@ vector<string> server::validDir(string currDir){
     closedir(dir);
 
     return lists;
+}
+
+bool server::isPossible(string dir_path){
+    for(int i = 0; i < MAXCLIENTS; i++){
+        size_t found = this->clients[i].dir.find('/'+dir_path);
+        if (found != string::npos){
+            return false;
+        }
+    }
+    return true;
+}
+
+bool server::fileAvailibility(string filename){
+    Json::Value files = this->config["files"];
+	for (int j = 0; j < files.size(); j++) {
+        if(files[j].asString() == filename)
+            return false;
+	}
+    return true;
 }

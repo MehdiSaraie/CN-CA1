@@ -15,7 +15,8 @@
 		"size": "1000000"
     }
   ],
-    "files": [
-      "config.json"
-    ]
+  "files": [
+      "config.json",
+      "1.txt"
+  ]
 }

@@ -1,7 +1,6 @@
 #ifndef _SERVER_H
 #define	_SERVER_H
 
-// #include "serverconnection.h"
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -45,6 +44,8 @@ private:
 	void InitSockets(int commandChannelPort);
 	void WriteInFile(string user, string action, string input1 = "", string input2 = "");
 	vector<string> validDir(string dir);
+	bool isPossible(string dir_path);
+	bool fileAvailibility(string filename);
 	int commandChannelPort;
 	int dataChannelPort;
 	Json::Value config;
