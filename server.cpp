@@ -41,6 +41,9 @@ void server::Run() {
 
 	int new_socket, activity, i, valread, sd, max_sd;
 	int data_socket = 0;
+	int ls_flag = 0;
+	int retr_flag = 0;
+	int cli_sock;
 	
 	for (i = 0; i < MAXCLIENTS; i++)
 	{
@@ -117,9 +120,17 @@ void server::Run() {
 			}
 			
 			if (send(data_socket, "Hello", strlen("Hello"), 0) != strlen("Hello"))
-				cerr << ("send() sent a different number of bytes than expected");
+				cerr << ("send1() sent a different number of bytes than expected");
 			data_socket = 0;
 			close(data_socket);
+			char message[100];
+			if (ls_flag) {
+				strcpy(message, "226: List transfer done.");
+			}
+			else
+				strcpy(message, "226: Successful Download.");
+			if(send(cli_sock, message, strlen(message), 0) != strlen(message))
+					cerr << ("send()2 sent a different number of bytes than expected");
 		}
 
 
@@ -153,9 +164,9 @@ void server::Run() {
 					}
 
 					//prepare response here
-
+					ls_flag = 0;
+					retr_flag = 0;
 					if (command == "user") {
-
 						if (this->clients[i].login == 2)
 							response = "please quit first";
 
@@ -163,10 +174,12 @@ void server::Run() {
 							response = "501: Syntax error in parameters or arguments.";
 
 						else {
+							int flag1 = 0;
 							string username=args[0];
 							Json::Value users = this->config["users"];
 							for (int j = 0; j < users.size(); j++) {
 								if (users[j]["user"] == username) {
+									flag1 = 1;
 									response = "331: User name okay, need password";
 									this->clients[i].login = 1;
 									this->clients[i].password = users[j]["password"].asString();
@@ -175,9 +188,10 @@ void server::Run() {
 									break;
 								}
 							}
+							if (!flag1)
+								response = "430: Invalid username or password";
 							this->clients[i].user = username;
 						}
-
 					}
 
 					else if (command == "pass") {
@@ -205,12 +219,14 @@ void server::Run() {
 							else
 								response = "430: Invalid username or password";
 						}
-
 					}
+					
 
 					else if (command == "pwd"){
 						if (this->clients[i].login != 2)
 							response = "332: Need acount for login.";
+						else if (args.size() != 0)
+							response = "501: Syntax error in parameters or arguments.";
 						else
 							response = ("257: " + this->clients[i].dir + "").c_str() ;
 					}
@@ -332,20 +348,21 @@ void server::Run() {
 					else if (command == "ls"){
 						if (this->clients[i].login != 2)
 							response = "332: Need acount for login.";
+						else if (args.size() != 0)
+							response = "501: Syntax error in parameters or arguments.";
 						else {
-							vector<string> lists = this->validDir(this->clients[i].dir.c_str());
-							string data = "";
-							for (int m=0; m<lists.size(); m++){
-								if(lists[m] != "." && lists[m] != "..")
-									data = data + "	" + lists[m];
-							}
-							response = "226: List transfer done.";
+							ls_flag = 1;
+							if(send(sd, "ls", strlen("ls"), 0) != strlen("ls"))
+								cerr << ("send() sent a different number of bytes than expected");
+							cli_sock = sd;
 						}
 					}
 
 					else if(command == "quit"){
 						if (this->clients[i].login != 2)
 							response = "332: Need acount for login.";
+						else if (args.size() != 0)
+							response = "501: Syntax error in parameters or arguments.";
 						else{
 							this->clients[i].login = 0;
 							response = "221: Successful Quit.";
@@ -355,6 +372,8 @@ void server::Run() {
 					else if(command == "help"){
 						if (this->clients[i].login != 2)
 							response = "332: Need acount for login.";
+						else if (args.size() != 0)
+							response = "501: Syntax error in parameters or arguments.";
 						else {
 							response = "214\nUSER [name], Its argument is used to specify the user's string. It is used for user authentication.\nPASS [password], Its argument is used to specify the user's password. It is used for user authentication.\nPWD, It shows that current directory that you are in it.\nMKD [directory_path], It creates new directory in current directory + directory path.\nDELE -D [directory_path], It deletes a directory that exists in current directory + directory path and no one is in it.\nDELE -F [file_name], It deletes a file with file_name in current directory.\nLS, It shows list of filenames and directories in current directory.\nCWD [path], It changes current directory to current directory + path.\nRENAME [old_name] [new_name], It changes name of file.\nRETR [name], It downloads file from server.\nQUIT, It uses for log out.";
 						}
@@ -392,9 +411,11 @@ void server::Run() {
 					else response = "501: Syntax error in parameters or arguments.";
 
 					//send response to client
-					char* message = &response[0];
-					if(send(sd, message, strlen(message), 0) != strlen(message))
-						cerr << ("send() sent a different number of bytes than expected");
+					if (ls_flag == 0 && retr_flag == 0) {
+						char* message = &response[0];
+						if(send(sd, message, strlen(message), 0) != strlen(message))
+							cerr << ("send() sent a different number of bytes than expected");
+					}
 				}
 			}
 		}
