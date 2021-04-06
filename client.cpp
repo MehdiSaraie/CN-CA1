@@ -38,14 +38,28 @@ void client::Communicate(uint dataChannelPort) {
 		memset(&buffer, 0, BUFSIZE);
 		int valread = recv(this->sock, buffer, BUFSIZE, 0);
 		if (valread > 0) {
-			puts(buffer);
-			if (strncmp(buffer, "226", 3) == 0) {
+			if (strncmp(buffer, "ls", 2) == 0) {
 				int data_sock = this->InitSocket(dataChannelPort);
+				memset(&buffer, 0, BUFSIZE);
+				recv(this->sock, buffer, BUFSIZE, 0);
+				puts(buffer);
 				memset(&buffer, 0, BUFSIZE);
 				recv(data_sock, buffer, BUFSIZE, 0);
 				puts(buffer);
 				close(data_sock);
 			}
+			else if (strncmp(buffer, "retr", 4) == 0) {
+				int data_sock = this->InitSocket(dataChannelPort);
+				memset(&buffer, 0, BUFSIZE);
+				recv(data_sock, buffer, BUFSIZE, 0);
+				puts(buffer);
+				memset(&buffer, 0, BUFSIZE);
+				recv(this->sock, buffer, BUFSIZE, 0);
+				puts(buffer);
+				close(data_sock);
+			}
+			else
+				puts(buffer);
 		}	
 	}
 }
