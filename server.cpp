@@ -321,6 +321,16 @@ void server::Run() {
 							response = "214\nUSER [name], Its argument is used to specify the user's string. It is used for user authentication.\nPASS [password], Its argument is used to specify the user's password. It is used for user authentication.\nPWD, It shows that current directory that you are in it.\nMKD [directory_path], It creates new directory in current directory + directory path.\nDELE -D [directory_path], It deletes a directory that exists in current directory + directory path and no one is in it.\nDELE -F [file_name], It deletes a file with file_name in current directory.\nLS, It shows list of filenames and directories in current directory.\nCWD [path], It changes current directory to current directory + path.\nRENAME [old_name] [new_name], It changes name of file.\nRETR [name], It downloads file from server.\nQUIT, It uses for log out.";
 						}
 					}
+
+					else if(command == "quit"){
+						if (this->clients[i].login != 2)
+							response = "332: Need acount for login.";
+						else{
+							this->clients[i].login = 0;
+							response = "221: Successful Quit.";
+						}
+					}
+
 					else response = "501: Syntax error in parameters or arguments.";
 
 					//send response to client
