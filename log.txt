@@ -21,3 +21,5 @@ Ali  Rename file  1.txt  2.txt  Date and Time: Tue Apr  6 22:40:56 2021
 Ali  Logged In      Date and Time: Tue Apr  6 22:41:55 2021
 Ali  Logged In      Date and Time: Tue Apr  6 22:55:40 2021
 Mohsen  Logged In      Date and Time: Tue Apr  6 22:56:30 2021
+Ali  Logged In      Date and Time: Tue Apr  6 23:47:22 2021
+Ali  Download file  2.txt    Date and Time: Tue Apr  6 23:47:39 2021
