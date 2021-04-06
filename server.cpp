@@ -301,7 +301,6 @@ void server::Run() {
 										break;
 									}
 								}
-								
 							}
 							if (flag)
 								response = "250: Sucessful change.";
@@ -334,7 +333,12 @@ void server::Run() {
 						if (this->clients[i].login != 2)
 							response = "332: Need acount for login.";
 						else {
-							
+							vector<string> lists = this->validDir(this->clients[i].dir.c_str());
+							string data = "";
+							for (int m=0; m<lists.size(); m++){
+								if(lists[m] != "." && lists[m] != "..")
+									data = data + "	" + lists[m];
+							}
 							response = "226: List transfer done.";
 						}
 					}
@@ -353,6 +357,35 @@ void server::Run() {
 							response = "332: Need acount for login.";
 						else {
 							response = "214\nUSER [name], Its argument is used to specify the user's string. It is used for user authentication.\nPASS [password], Its argument is used to specify the user's password. It is used for user authentication.\nPWD, It shows that current directory that you are in it.\nMKD [directory_path], It creates new directory in current directory + directory path.\nDELE -D [directory_path], It deletes a directory that exists in current directory + directory path and no one is in it.\nDELE -F [file_name], It deletes a file with file_name in current directory.\nLS, It shows list of filenames and directories in current directory.\nCWD [path], It changes current directory to current directory + path.\nRENAME [old_name] [new_name], It changes name of file.\nRETR [name], It downloads file from server.\nQUIT, It uses for log out.";
+						}
+					}
+
+					else if(command == "retr"){
+						if (this->clients[i].login != 2)
+							response = "332: Need acount for login.";
+						else if (args.size() != 1)
+							response = "501: Syntax error in parameters or arguments.";
+						else{
+							string name = args[0];
+							if(this->clients[i].admin == 1 || this->fileAvailibility(name)){
+								ifstream in_file((this->clients[i].dir+name).c_str(), ios::binary| std::ios::ate);
+								in_file.seekg(0, ios::end);
+								int file_size = in_file.tellg();
+								if(this->clients[i].size >= file_size){
+									in_file.seekg(0, std::ios::beg);
+									std::vector<char> buffer(file_size);
+									if (in_file.read(buffer.data(), file_size)){
+										string data = "";
+										for(int m=0; m<buffer.size(); m++){
+											data += buffer[m];
+										}
+										this->clients[i].size -= file_size;
+										this->WriteInFile(this->clients[i].user, "Download file", name);
+										response = "226: Successful Download.";
+									}
+								}
+							}
+							else response = "550: File unavailable.";
 						}
 					}
 
