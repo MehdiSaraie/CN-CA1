@@ -223,7 +223,6 @@ void server::Run() {
 						else{
 							string dir_path = args[0];
 							if(mkdir((this->clients[i].dir + dir_path).c_str(),0777) == 0){
-								//this->clients[i].dir += dir_path;
 								if(dir_path.back() != '/')
 									dir_path += '/';
 								response = ("257: " + this->clients[i].dir + dir_path + " created.").c_str();
@@ -283,6 +282,8 @@ void server::Run() {
 								flag = 1;
 							}
 							else{
+								if(dir_path.back() != '/')
+									dir_path += '/';
 								string lastDir = "";
 								string temp = this->clients[i].dir + dir_path;
 								temp = temp.substr(0, temp.size()-1);
@@ -335,6 +336,23 @@ void server::Run() {
 						else {
 							
 							response = "226: List transfer done.";
+						}
+					}
+
+					else if(command == "quit"){
+						if (this->clients[i].login != 2)
+							response = "332: Need acount for login.";
+						else{
+							this->clients[i].login = 0;
+							response = "221: Successful Quit.";
+						}
+					}
+
+					else if(command == "help"){
+						if (this->clients[i].login != 2)
+							response = "332: Need acount for login.";
+						else {
+							response = "214\nUSER [name], Its argument is used to specify the user's string. It is used for user authentication.\nPASS [password], Its argument is used to specify the user's password. It is used for user authentication.\nPWD, It shows that current directory that you are in it.\nMKD [directory_path], It creates new directory in current directory + directory path.\nDELE -D [directory_path], It deletes a directory that exists in current directory + directory path and no one is in it.\nDELE -F [file_name], It deletes a file with file_name in current directory.\nLS, It shows list of filenames and directories in current directory.\nCWD [path], It changes current directory to current directory + path.\nRENAME [old_name] [new_name], It changes name of file.\nRETR [name], It downloads file from server.\nQUIT, It uses for log out.";
 						}
 					}
 
