@@ -8,7 +8,6 @@
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/fcntl.h>
 #include <sys/param.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -21,15 +20,11 @@ using namespace std;
 
 class client {
 public:
-	client(uint commandChannelPort, uint dataChannelPort, string dir);
-	void Communicate();
+	client(uint commandChannelPort);
+	void Communicate(uint dataChannelPort);
 private:
-	void InitSockets(int commandChannelPort);
-	int dataChannelPort;
-	int s;
-	string dir;
-	struct sockaddr_in serv_addr;
-	unsigned short commandOffset;
+	int InitSocket(int port);
+	int sock;
 };
 
 #endif

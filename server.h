@@ -8,7 +8,6 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/fcntl.h>
 #include <sys/param.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -27,7 +26,7 @@
 using namespace std;
 
 struct connected_client {
-	int socket;
+	int command_socket;
 	int login;
 	string user;
 	string password;
@@ -38,27 +37,24 @@ struct connected_client {
 
 class server {
 public:
-	server(uint commandChannelPort, uint dataChannelPort, string dir, Json::Value config);
+	server(uint commandChannelPort, uint dataChannelPort, Json::Value config);
 	void Run();
 private:
-	void InitSockets(int commandChannelPort);
+	int InitSocket(int port);
 	void WriteInFile(string user, string action, string input1 = "", string input2 = "");
 	vector<string> validDir(string dir);
 	bool isPossible(string dir_path);
 	bool fileAvailibility(string filename);
-	int commandChannelPort;
-	int dataChannelPort;
 	Json::Value config;
-	int listening_socket;
+	int command_listening_socket;
+	int data_listening_socket;
 	fd_set readfds;
 	struct connected_client clients[MAXCLIENTS];
-	string dir;
-	struct sockaddr_in addr;
 	struct sockaddr_in cli_addr;
 	socklen_t cli_size;
 	ofstream outfile;
 	time_t now;
-    char* date_time;
+	char* date_time;
 
 };
 

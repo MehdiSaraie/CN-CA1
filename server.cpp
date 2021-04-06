@@ -1,59 +1,73 @@
 #include "server.h"
 #define BUFSIZE 1024
 
-server::server(uint commandChannelPort, uint dataChannelPort, string dir, Json::Value config) : commandChannelPort(commandChannelPort), dataChannelPort(dataChannelPort), dir(dir), config(config) {
-	this->InitSockets(commandChannelPort);
+server::server(uint commandChannelPort, uint dataChannelPort, Json::Value config) : config(config) {
+	this->command_listening_socket = this->InitSocket(commandChannelPort);
+	this->data_listening_socket = this->InitSocket(dataChannelPort);
 }
 
 
-void server::InitSockets(int commandChannelPort) {
+int server::InitSocket(int port) {
 	int reuseAllowed = 1;
-	this->addr.sin_family = AF_INET;
-	this->addr.sin_port = htons(commandChannelPort);
-	this->addr.sin_addr.s_addr = INADDR_ANY;
-	this->listening_socket = socket(PF_INET, SOCK_STREAM, 0);
-	if (this->listening_socket == -1) {
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	int listening_socket = socket(PF_INET, SOCK_STREAM, 0);
+	if (listening_socket == -1) {
 		cerr << "socket() failed" << endl;
-		return;
+		return -1;
 	}
-	else if (setsockopt(this->listening_socket, SOL_SOCKET, SO_REUSEADDR, &reuseAllowed, sizeof(reuseAllowed)) < 0) {
+	if (setsockopt(listening_socket, SOL_SOCKET, SO_REUSEADDR, &reuseAllowed, sizeof(reuseAllowed)) < 0) {
 		cerr << "setsockopt() failed" << endl;
-		close (this->listening_socket);
-		return;
+		close (listening_socket);
+		return -1;
 	}
-	if (bind(this->listening_socket, (struct sockaddr*)&this->addr, sizeof(this->addr)) == -1) {
+	if (bind(listening_socket, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
 		cerr << ("bind() failed (do you have the apropriate rights? is the port unused?)") << endl;
-		close (this->listening_socket);
-		return;
+		close (listening_socket);
+		return -1;
 	}
-	else if (listen(this->listening_socket, 3) == -1) {
+	if (listen(listening_socket, 3) == -1) {
 		cerr << ("listen () failed") << endl;
-		close (this->listening_socket);
-		return;
+		close (listening_socket);
+		return -1;
 	}
-
-	for (int i = 0; i < MAXCLIENTS; i++)
-	{
-		this->clients[i].socket = 0;
-	}
+	return listening_socket;
 }
 
 
 void server::Run() {
 
 	int new_socket, activity, i, valread, sd, max_sd;
+	int data_socket = 0;
+	
+	for (i = 0; i < MAXCLIENTS; i++)
+	{
+		this->clients[i].command_socket = 0;
+	}
 
 	while(true) {
 
 		FD_ZERO(&this->readfds);
 
-		FD_SET(this->listening_socket, &this->readfds);
-		max_sd = this->listening_socket;
-			 
+
+		FD_SET(this->command_listening_socket, &this->readfds);
+		max_sd = this->command_listening_socket;
+
+		FD_SET(this->data_listening_socket, &this->readfds);
+		if (this->data_listening_socket > max_sd)
+			max_sd = this->data_listening_socket;
+
+		if (data_socket > 0)
+			FD_SET(data_socket, &this->readfds);
+		if (data_socket > max_sd)
+			max_sd = data_socket;
+
 		//add child sockets to set
 		for (i = 0; i < MAXCLIENTS; i++) {
 			//socket descriptor 
-			sd = this->clients[i].socket;
+			sd = this->clients[i].command_socket;
 				 
 			//if valid socket descriptor then add to read list 
 			if (sd > 0)
@@ -62,22 +76,21 @@ void server::Run() {
 			//highest file descriptor number, need it for the select function 
 			if (sd > max_sd)
 				max_sd = sd;
-		}  
+		}
 	 
 		//wait for an activity on one of the sockets , timeout is NULL ,
 		//so wait indefinitely
-		activity = select(max_sd + 1, &this->readfds, NULL, NULL, NULL);
-	   
+		activity = select(max_sd + 1, &this->readfds, NULL, NULL, NULL);		
 		if ((activity < 0) && (errno!=EINTR)) {
-			cout << "select error";
+			cerr << ("select error\n");
 		}
 
 		//If something happened on the master socket then its an incoming connection
-		if (FD_ISSET(this->listening_socket, &this->readfds)) {
-			if ((new_socket = accept(this->listening_socket, (struct sockaddr *)&this->cli_addr, (socklen_t*)&this->cli_size))<0) {
+		if (FD_ISSET(this->command_listening_socket, &this->readfds)) {
+			if ((new_socket = accept(this->command_listening_socket, (struct sockaddr *)&this->cli_addr, (socklen_t*)&this->cli_size))<0) {
 				cerr << ("Error while accepting client");
 				return exit(EXIT_FAILURE);
-			}  
+			}
 
 			getpeername(new_socket, (struct sockaddr*)&this->cli_addr, (socklen_t*)&this->cli_size);
 			cout << "New client with ip: " << inet_ntoa(this->cli_addr.sin_addr) << ", port: " << ntohs(this->cli_addr.sin_port) << " connected to socket fd: " << new_socket << endl;
@@ -85,8 +98,8 @@ void server::Run() {
 			//add new socket to array of sockets
 			for (i = 0; i < MAXCLIENTS; i++) {
 				//if position is empty
-				if (this->clients[i].socket == 0) {
-					this->clients[i].socket = new_socket;
+				if (this->clients[i].command_socket == 0) {
+					this->clients[i].command_socket = new_socket;
 					this->clients[i].login = 0;
 					this->clients[i].user = "";
 					this->clients[i].dir = "./";
@@ -95,10 +108,24 @@ void server::Run() {
 			}
 			
 		}
-			 
+
+
+		if (FD_ISSET(this->data_listening_socket, &this->readfds)) {
+			if ((data_socket = accept(this->data_listening_socket, (struct sockaddr *)&this->cli_addr, (socklen_t*)&this->cli_size))<0) {
+				cerr << ("Error while accepting client");
+				return exit(EXIT_FAILURE);
+			}
+			
+			if (send(data_socket, "Hello", strlen("Hello"), 0) != strlen("Hello"))
+				cerr << ("send() sent a different number of bytes than expected");
+			data_socket = 0;
+			close(data_socket);
+		}
+
+
 		//else its some IO operation on some other socket
 		for (i = 0; i < MAXCLIENTS; i++) {
-			sd = this->clients[i].socket;  
+			sd = this->clients[i].command_socket;  
 
 			if (FD_ISSET(sd, &this->readfds)) {
 				char buffer[BUFSIZE+1];
@@ -112,7 +139,7 @@ void server::Run() {
 
 					//Close the socket and mark as 0 in list for reuse
 					close(sd);
-					this->clients[i].socket = 0;
+					this->clients[i].command_socket = 0;
 				}
 					 
 				else {
@@ -196,6 +223,7 @@ void server::Run() {
 						else{
 							string dir_path = args[0];
 							if(mkdir((this->clients[i].dir + dir_path).c_str(),0777) == 0){
+								//this->clients[i].dir += dir_path;
 								if(dir_path.back() != '/')
 									dir_path += '/';
 								response = ("257: " + this->clients[i].dir + dir_path + " created.").c_str();
@@ -255,8 +283,6 @@ void server::Run() {
 								flag = 1;
 							}
 							else{
-								if(dir_path.back() != '/')
-									dir_path += '/';
 								string lastDir = "";
 								string temp = this->clients[i].dir + dir_path;
 								temp = temp.substr(0, temp.size()-1);
@@ -303,31 +329,12 @@ void server::Run() {
 						}
 					}
 
-					//??????????????
 					else if (command == "ls"){
 						if (this->clients[i].login != 2)
 							response = "332: Need acount for login.";
 						else {
-							vector<string> lists = this->validDir(this->clients[i].dir.c_str());
 							
 							response = "226: List transfer done.";
-						}
-					}
-
-					else if(command == "help"){
-						if (this->clients[i].login != 2)
-							response = "332: Need acount for login.";
-						else {
-							response = "214\nUSER [name], Its argument is used to specify the user's string. It is used for user authentication.\nPASS [password], Its argument is used to specify the user's password. It is used for user authentication.\nPWD, It shows that current directory that you are in it.\nMKD [directory_path], It creates new directory in current directory + directory path.\nDELE -D [directory_path], It deletes a directory that exists in current directory + directory path and no one is in it.\nDELE -F [file_name], It deletes a file with file_name in current directory.\nLS, It shows list of filenames and directories in current directory.\nCWD [path], It changes current directory to current directory + path.\nRENAME [old_name] [new_name], It changes name of file.\nRETR [name], It downloads file from server.\nQUIT, It uses for log out.";
-						}
-					}
-
-					else if(command == "quit"){
-						if (this->clients[i].login != 2)
-							response = "332: Need acount for login.";
-						else{
-							this->clients[i].login = 0;
-							response = "221: Successful Quit.";
 						}
 					}
 
